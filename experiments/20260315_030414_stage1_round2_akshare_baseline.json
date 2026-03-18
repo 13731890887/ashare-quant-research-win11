@@ -1,0 +1,21 @@
+{
+  "name": "stage1_round2_akshare_baseline",
+  "params": {
+    "symbols": 16,
+    "top_n": 8,
+    "hold_days": 5,
+    "start": "2019-01-01",
+    "end": "2026-03-14",
+    "data_source": "local_cache_fallback"
+  },
+  "metrics": {
+    "ann_return": 0.017473528242321512,
+    "ann_vol": 0.1344031269123537,
+    "sharpe": 0.13000834611322892,
+    "max_drawdown": -0.6781490040556784,
+    "win_rate": 0.45668387837062535,
+    "days": 1743,
+    "data_source": "local_cache_fallback",
+    "fetch_error_count": 0
+  }
+}

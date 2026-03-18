@@ -1,0 +1,19 @@
+project:
+  name: ashare-quant-research
+
+data:
+  all_buyable_path: data/stage4_all_buyable/market_daily_all_buyable_20210101_20260314.parquet
+  start_date: '2021-01-04'
+  end_date: '2026-03-13'
+
+backtest:
+  top_n: 12
+  hold_days: 5
+  commission_bps: 2.5
+  slippage_bps: 5.0
+  stamp_duty_sell_bps: 10.0
+
+risk:
+  stop_loss: -0.07
+  take_profit_partial: 0.12
+  max_positions: 5

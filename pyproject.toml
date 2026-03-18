@@ -1,0 +1,32 @@
+[project]
+name = "ashare-quant-research"
+version = "0.1.0"
+description = "A-share quantitative research system"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "pandas>=2.2.2",
+  "numpy>=2.1.0",
+  "pydantic>=2.8.2",
+  "pyyaml>=6.0.2",
+  "scikit-learn>=1.5.1",
+  "xgboost>=2.1.1",
+  "matplotlib>=3.9.2",
+  "akshare>=1.18.39",
+  "pyarrow>=23.0.1",
+  "tushare>=1.4.25",
+  "python-dotenv>=1.2.2",
+  "pytest>=9.0.2",
+  "streamlit>=1.55.0",
+  "plotly>=6.6.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.uv]
+package = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/ashare_quant"]

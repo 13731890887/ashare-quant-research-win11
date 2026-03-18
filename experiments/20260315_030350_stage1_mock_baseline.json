@@ -1,0 +1,10 @@
+{
+  "name": "stage1_mock_baseline",
+  "params": {
+    "top_n": 20
+  },
+  "metrics": {
+    "ann_return": 4.28306543499034,
+    "max_drawdown": 0.0
+  }
+}

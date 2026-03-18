@@ -1,0 +1,24 @@
+{
+  "name": "stage1_round2_akshare_baseline",
+  "params": {
+    "symbols": 16,
+    "top_n": 8,
+    "hold_days": 5,
+    "start": "2019-01-01",
+    "end": "2026-03-14",
+    "data_source": "akshare_live"
+  },
+  "metrics": {
+    "ann_return": 0.4078854856888754,
+    "ann_vol": 0.11706439384939245,
+    "sharpe": 3.4842830708510286,
+    "max_drawdown": -0.2256849860462361,
+    "win_rate": 0.5725760183591508,
+    "days": 1743,
+    "data_source": "akshare_live",
+    "fetch_error_count": 0,
+    "vendors": [
+      "sina_daily"
+    ]
+  }
+}

@@ -1,0 +1,4 @@
+enabled: false
+users:
+  - username: admin
+    password: change_me

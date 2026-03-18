@@ -1,0 +1,24 @@
+version: 1
+contracts:
+  daily_bars:
+    required_columns:
+      - trade_date
+      - ts_code
+      - open
+      - high
+      - low
+      - close
+      - volume
+      - amount
+      - is_st
+      - is_suspended
+      - up_limit
+      - down_limit
+      - data_vendor
+  valuation_daily:
+    required_columns:
+      - trade_date
+      - ts_code
+      - pe_ttm
+      - pb
+      - mv_total

@@ -1,0 +1,20 @@
+{
+  "name": "stage1_round3_tushare_baseline",
+  "params": {
+    "symbols": 16,
+    "top_n": 8,
+    "hold_days": 5,
+    "start": "2019-01-01",
+    "end": "2026-03-14"
+  },
+  "metrics": {
+    "ann_return": 0.010421419008307398,
+    "ann_vol": 0.24072261641286447,
+    "sharpe": 0.04329223054984403,
+    "max_drawdown": -0.6985700157429764,
+    "win_rate": 0.4825014343086632,
+    "days": 1743,
+    "data_source": "tushare_live",
+    "fetch_error_count": 1
+  }
+}
