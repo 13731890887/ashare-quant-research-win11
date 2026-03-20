@@ -1,25 +1,148 @@
 # A 股量化选股系统
 
-这是一个面向 A 股研究场景的量化选股项目，包含数据更新、因子计算、候选股筛选、策略打分、回测验证和 Web 可视化界面。
+这是一个面向 A 股研究场景的量化选股项目，包含数据初始化、增量更新、因子计算、候选股筛选、策略打分、回测验证和 Web 可视化界面。
 
-> 给智能体 / AI 助手的提示：在执行安装、部署、初始化数据或运行项目之前，请先阅读仓库根目录的 `DEPLOY-GUIDE.md`，再按其中的步骤推进，避免遗漏环境、数据源和平台差异配置。
+## 给智能体 / AI 助手的强制说明
 
-当前仓库已经切到一套可落地运行的 `多因子 + XGBoost CUDA` 选股流程，支持：
+**如果你是智能体，部署、初始化、运行本项目时必须按下面顺序执行，不要自行跳步。**
 
-- 更新到最新交易日的本地行情数据
-- 生成最新 `Top10` 候选
-- 跑历史回测并输出具体收益
-- 每天记录预测的未来 10 日收益
-- 在 10 个交易日后自动回填实际收益并做误差评估
+### 0. 先读这个文件，再读 `DEPLOY-GUIDE.md`
 
-如果你是第一次接触这个项目，可以先把它理解成一条完整流程：
+- `README.md`：项目总览 + 推荐部署路径
+- `DEPLOY-GUIDE.md`：更细的部署决策说明
+- `WINDOWS-SETUP.md`：Windows 运行补充说明
 
-1. 拉取或更新行情数据
-2. 清洗并过滤不适合参与选股的股票
-3. 计算趋势、动量、流动性、波动等基础指标
-4. 给股票打分并生成候选名单
-5. 输出买入 / 持有 / 卖出建议
-6. 在网页界面中查看结果
+### 1. 先检查环境，不要直接开跑
+
+在项目根目录先检查：
+
+```bash
+python3 --version || python --version
+git --version
+uv --version
+```
+
+要求：
+- Python `>= 3.11`
+- 已安装 `uv`
+
+若缺少 `uv`：
+
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+### 2. 优先选择“已发布数据包”路径，不要默认从零抓全量
+
+**默认推荐路径：直接使用已发布数据包完成初始化。**
+
+原因：
+- 当前项目不是“零数据一键全量抓取”模式
+- 很多增量脚本依赖本地先存在基础 parquet 和股票池文件
+- 对新机器 / 新目录 / 新部署来说，先落地基础数据再运行，成功率最高
+
+当前默认数据包：
+
+- `https://seqiwang.cn/uploads/ashare-quant-data-20260320.tar.gz`
+
+其中主行情数据真实时间范围为：
+
+- `2021-01-04` ~ `2026-03-18`
+
+数据包包含：
+
+- `data/stage4_all_buyable/`
+- `data/fundamental_cache/`
+- `reports/`
+
+### 3. 标准部署顺序（智能体必须优先使用）
+
+#### 方案 A：macOS / Linux / WSL 推荐流程
+
+在项目根目录执行：
+
+```bash
+./scripts/bootstrap_from_data_package.sh
+```
+
+这个脚本会自动完成：
+
+1. 创建 `.env`（若不存在）
+2. 下载数据包
+3. 解压到项目根目录
+4. 执行 `uv sync`
+5. 运行正式策略 `stage12_dual_signal_strategy`
+
+#### 方案 B：Windows 推荐流程
+
+在 PowerShell 中执行：
+
+```powershell
+.\scripts\bootstrap_from_data_package_win.ps1
+```
+
+这个脚本会自动完成：
+
+1. 创建 `.env`（若不存在）
+2. 下载数据包
+3. 解压到项目根目录
+4. 执行 `uv sync`
+5. 运行正式策略 `stage12_dual_signal_strategy`
+
+### 4. `.env` 的默认策略
+
+如果只是先把项目跑通，而不是立刻使用 Tushare，可先使用空配置：
+
+```env
+TUSHARE_TOKEN=
+TUSHARE_HTTP_URL=
+```
+
+也就是说：
+- 没有 Tushare token 时，不要强行要求用户先配置 token
+- 先走数据包初始化路径即可
+- 只有在需要实时更新 / Tushare 增量接口时，再要求填写 `TUSHARE_TOKEN`
+
+### 5. 跑完后怎么验证
+
+智能体部署结束后，至少验证以下内容：
+
+```bash
+uv run pytest -q
+```
+
+以及至少任选其一：
+
+```bash
+./scripts/run_decision_app.sh
+```
+
+或：
+
+```bash
+PYTHONPATH=src uv run python -m ashare_quant.pipeline.stage12_dual_signal_strategy
+```
+
+### 6. 不要犯的错误
+
+智能体在这个项目里最容易犯的错：
+
+1. **只看文件名判断数据截止日期**  
+   主 parquet 文件名里可能还是旧日期，但真实数据内容可能已经更晚。应直接读取 `trade_date` 的最小/最大值确认。
+
+2. **在没有基础 parquet 的情况下直接跑增量更新**  
+   `stage13_incremental_refresh` 依赖已有基础数据，不是零数据初始化入口。
+
+3. **把 Tushare 当成唯一入口**  
+   新机器首次部署时，应优先使用“已发布数据包”路径，而不是强制用户先准备 token。
+
+4. **硬编码本地绝对路径**  
+   启动脚本、下载脚本、部署脚本都应以项目根目录相对路径运行。
+
+5. **只完成安装，不做运行验证**  
+   部署结束后必须至少验证测试、策略或 Web 入口中的一个。
+
+---
 
 ## 项目特点
 
@@ -45,61 +168,85 @@ tests/               测试
 
 ## 环境要求
 
-- macOS / Linux
-- Python 3.11
+- macOS / Linux / WSL / Windows 11
+- Python 3.11+
 - `uv`
 
-如果本机还没有 `uv`，可先安装：
+## 最快部署方式
+
+### Linux / macOS / WSL
 
 ```bash
-curl -LsSf https://astral.sh/uv/install.sh | sh
+./scripts/bootstrap_from_data_package.sh
 ```
 
-## 快速开始
+### Windows PowerShell
 
-### 1. 安装依赖
+```powershell
+.\scripts\bootstrap_from_data_package_win.ps1
+```
 
-在项目根目录执行：
+## 一步配置 + 运行说明
+
+默认数据包：
+
+- `https://seqiwang.cn/uploads/ashare-quant-data-20260320.tar.gz`
+
+主行情真实时间范围：
+
+- `2021-01-04` ~ `2026-03-18`
+
+### 可选运行模式
+
+默认运行模式：
+
+- `strategy`：下载数据后直接运行正式策略
+
+Linux / macOS / WSL：
 
 ```bash
-export PATH="$HOME/.local/bin:$PATH"
-uv sync
+ASHARE_RUN_MODE=app ./scripts/bootstrap_from_data_package.sh
+ASHARE_RUN_MODE=both ./scripts/bootstrap_from_data_package.sh
+ASHARE_DATA_URL=https://your-domain/path/to/data.tar.gz ./scripts/bootstrap_from_data_package.sh
 ```
 
-### 2. 配置环境变量
+Windows PowerShell：
 
-如果你要使用 Tushare 更新数据，先准备 `.env`：
+```powershell
+$env:ASHARE_RUN_MODE = "app"
+.\scripts\bootstrap_from_data_package_win.ps1
 
-```bash
-cp .env.example .env
+$env:ASHARE_RUN_MODE = "both"
+.\scripts\bootstrap_from_data_package_win.ps1
+
+$env:ASHARE_DATA_URL = "https://your-domain/path/to/data.tar.gz"
+.\scripts\bootstrap_from_data_package_win.ps1
 ```
 
-然后在 `.env` 中填写：
+## Web 入口
 
-```env
-TUSHARE_TOKEN=你的_tushare_token
-```
-
-如果你有自定义网关，也可以额外配置：
-
-```env
-TUSHARE_HTTP_URL=http://your-custom-gateway
-```
-
-如果你在 WSL 中运行，并且本机配置了代理，有些数据源可能需要临时绕过代理才能稳定抓取。
-
-### 3. 启动量化系统
-
-当前可用的 Web 入口是：
+### 决策应用
 
 ```bash
 ./scripts/run_decision_app.sh
 ```
 
-启动后在浏览器打开：
+浏览器打开：
 
 ```text
 http://127.0.0.1:8512
+```
+
+### 数据看板
+
+```bash
+./scripts/run_dashboard.sh
+```
+
+浏览器打开：
+
+```text
+http://127.0.0.1:8501
 ```
 
 ## 如何更新数据
@@ -127,7 +274,13 @@ PYTHONPATH=src uv run python -m ashare_quant.pipeline.stage13_incremental_refres
 STAGE13_END_DATE=2026-03-13 PYTHONPATH=src uv run python -m ashare_quant.pipeline.stage13_incremental_refresh
 ```
 
-### 方式三：按最新收盘批量补今日行情
+### 方式三：直接使用已发布数据包（最快）
+
+```bash
+./scripts/bootstrap_from_data_package.sh
+```
+
+### 方式四：按最新收盘批量补今日行情
 
 如果 `Tushare` 不可用，项目也可以用新浪批量行情接口补最新交易日的收盘数据。当前这条路径已经实测用于把数据更新到 `2026-03-18`。
 
@@ -155,13 +308,6 @@ STAGE13_END_DATE=2026-03-13 PYTHONPATH=src uv run python -m ashare_quant.pipelin
 PYTHONPATH=src uv run python -m ashare_quant.pipeline.stage12_dual_signal_strategy
 ```
 
-这一步当前会做 4 件事：
-
-1. 读取最新行情和估值缓存
-2. 训练 / 打分多因子模型
-3. 输出最新 `Top10`
-4. 记录预测日志并更新回测
-
 运行后会在 `reports/` 下生成常用结果文件，例如：
 
 - `reports/stage12_dual_top50.csv`
@@ -176,188 +322,3 @@ PYTHONPATH=src uv run python -m ashare_quant.pipeline.stage12_dual_signal_strate
 ## 当前策略
 
 当前正式使用的是 `多因子 + XGBoost CUDA` 的 `Top10` 策略。
-
-### 1. 基础过滤
-
-- 剔除 `ST`
-- 剔除停牌
-- 要求最小成交额
-- 价格过低的股票不参与
-
-### 2. 使用的因子
-
-策略会综合以下几类信息：
-
-- 动量：`ret_20`、`ret_60`、`ret_120`
-- 趋势：`ma20`、`ma60`、`ma120`、均线距离、突破强度
-- 流动性：`amount`、`amount_20`、`amount_60`、放量程度
-- 风险 / 质量：波动率、20 日 / 60 日回撤
-- 估值：`pe_ttm`、`pb`、`mv_total`
-
-### 3. 分数结构
-
-会先按交易日做横截面分位排名，再形成几个子分数：
-
-- `momentum_score`
-- `quality_score`
-- `liquidity_score`
-- `value_score`
-
-然后合成：
-
-- `rule_score = 0.42 * momentum + 0.23 * quality + 0.20 * liquidity + 0.15 * value`
-- `risk_score`
-
-### 4. 机器学习部分
-
-- 使用 `XGBoost`，优先走 `CUDA`
-- 训练目标是未来 `10` 个交易日收益 `fwd_ret_10`
-- 输出 `ml_score`
-- 最终排序分数：
-
-```text
-final_score = 0.65 * expected_ret_10 + 0.35 * rule_score
-```
-
-其中 `expected_ret_10` 是模型预测值经过历史误差校准后的结果。
-
-### 5. 交易规则
-
-- 每天按 `final_score` 排序
-- 选出可交易且最强的 `Top10`
-- 默认持有 `10` 个交易日
-- 回测也按这个规则执行
-
-## 预测记录与模型校准
-
-当前策略已经支持预测闭环。
-
-每天运行策略时会：
-
-1. 记录当天 `Top10` 的 `predicted_ret_10`
-2. 记录校准后的 `expected_ret_10`
-3. 在 10 个交易日后自动回填 `actual_ret_10`
-4. 计算误差、绝对误差和方向是否判断正确
-5. 基于成熟样本做线性校准，修正下一轮预测输出
-
-核心文件：
-
-- `reports/stage12_prediction_journal.parquet`
-- `reports/stage12_prediction_eval_summary.json`
-
-第一天运行时成熟样本为 `0` 是正常的；等满 10 个交易日后才会开始自动对账。
-
-## 回测怎么看
-
-当前回测输出同时提供摘要和完整曲线。
-
-- `reports/stage12_backtest_summary.json`
-- `reports/stage12_backtest_curve.parquet`
-
-常见指标说明：
-
-- `ann_return`：年化收益，小数形式，`3.00` 表示 `300%`
-- `ann_vol`：年化波动，小数形式
-- `max_drawdown`：最大回撤，小数形式，`-0.18` 表示 `-18%`
-- `win_rate`：胜率，小数形式
-
-如果要看更直观的结果，建议结合累计收益、资金净值和滚动持有 10 日收益一起看，而不要只看年化收益。
-
-## 当前已验证状态
-
-截至当前 README 更新时，这套流程已经完成：
-
-- 本地数据更新到 `2026-03-18`
-- 用 GPU 版多因子策略生成了最新 `Top10`
-- 重跑并落盘了最新回测
-- 启动了每日预测日志
-
-如果后续发现 `README` 与实际输出不一致，应优先以 `reports/` 下最新文件和 `src/ashare_quant/pipeline/stage12_dual_signal_strategy.py` 的实现为准。
-
-## 测试
-
-```bash
-uv run pytest -q
-```
-
-## `data` 文件夹能不能推送到 GitHub？
-
-默认不建议，也默认不会。
-
-原因很简单：
-
-- `data/` 往往包含大量行情文件，体积很大
-- 这些文件属于运行数据，不属于源码
-- 推送后会让仓库膨胀很快，后续同步和克隆都会变慢
-- 数据经常更新，不适合直接当作代码版本管理
-
-当前项目的 `.gitignore` 已经默认忽略了：
-
-```gitignore
-data/**
-reports/**
-logs/**
-```
-
-只保留轻量样例目录：
-
-```gitignore
-!data/samples/
-!data/samples/**
-```
-
-所以结论是：
-
-- 真实数据文件：不建议推送
-- 小型样例数据：可以按需保留在 `data/samples/`
-- 代码、配置模板、脚本：建议推送
-
-如果你确实要共享数据，建议优先用下面几种方式：
-
-1. 只提供小样本数据
-2. 把大文件放到对象存储或网盘
-3. 在 README 中写清楚数据获取方式，而不是把整份数据直接放进仓库
-
-## 常见问题
-
-### 1. 为什么启动脚本不是 `run_dashboard.sh`？
-
-当前仓库中实际可用的是：
-
-```bash
-./scripts/run_decision_app.sh
-```
-
-它会启动 `app/decision_app.py`，端口为 `8512`。
-
-### 2. 为什么更新数据失败？
-
-常见原因包括：
-
-- 没有配置 `TUSHARE_TOKEN`
-- 本地缺少基础数据文件
-- 网络或接口访问失败
-- WSL 代理配置导致外部行情接口返回失败
-
-### 3. 为什么有些股票进了 Top10，但预测的 10 日收益不是正数？
-
-因为当前排序不是只看 `expected_ret_10`，还同时混合了 `rule_score`。这是一种折中设计，优点是更稳，缺点是偶尔会把预测收益偏弱但规则形态较好的股票也推上来。
-
-### 4. 为什么 GitHub 上看不到 `data/`？
-
-这是正常现象，因为 `data/` 默认被 `.gitignore` 忽略，不会进入仓库。
-
-## 推荐使用顺序
-
-新用户建议按下面顺序上手：
-
-1. `uv sync` 安装依赖
-2. 配置 `.env`
-3. 启动 `./scripts/run_decision_app.sh`
-4. 先查看页面和已有结果
-5. 再执行数据更新
-6. 最后运行策略并查看输出
-
-## 许可证
-
-如需开源发布，建议后续补充明确的 License 文件。

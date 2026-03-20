@@ -165,6 +165,73 @@ data_source:
 
 ---
 
+### 方案 E：已发布数据包（最快上手，推荐新机器）
+
+**适用场景：** 您希望在新机器上最快完成部署，不想先手动准备 parquet / csv / 基本面缓存。
+
+**数据包地址：**
+- `https://seqiwang.cn/uploads/ashare-quant-data-20260320.tar.gz`
+
+**当前主行情真实时间范围：**
+- `2021-01-04` ~ `2026-03-18`
+
+**数据包内容：**
+- `data/stage4_all_buyable/`
+- `data/fundamental_cache/`
+- `reports/`
+
+**配置方式：**
+
+```powershell
+# 复制环境变量模板（如不存在）
+copy .env.example .env
+
+# 不使用 Tushare 时，可保持空值
+notepad .env
+```
+
+`.env` 可写为：
+```env
+TUSHARE_TOKEN=
+TUSHARE_HTTP_URL=
+```
+
+**一步配置 + 运行：**
+
+```powershell
+.\scripts\bootstrap_from_data_package_win.ps1
+```
+
+这个脚本会自动完成：
+1. 创建 `.env`（如果不存在）
+2. 下载数据包
+3. 解压到项目根目录
+4. 执行 `uv sync`
+5. 运行正式策略 `stage12_dual_signal_strategy`
+
+**如果要下载后直接启动 Web：**
+
+```powershell
+$env:ASHARE_RUN_MODE = "app"
+.\scripts\bootstrap_from_data_package_win.ps1
+```
+
+**如果要先跑策略再启动 Web：**
+
+```powershell
+$env:ASHARE_RUN_MODE = "both"
+.\scripts\bootstrap_from_data_package_win.ps1
+```
+
+**如果你有自己的数据包地址：**
+
+```powershell
+$env:ASHARE_DATA_URL = "https://your-domain/path/to/data.tar.gz"
+.\scripts\bootstrap_from_data_package_win.ps1
+```
+
+---
+
 ## 第四步：安装依赖
 
 ```powershell
@@ -195,7 +262,7 @@ notepad config\notify.yaml
 
 ## 第六步：运行数据管道
 
-> AI 会根据您在第三步选择的数据源，自动引导您执行对应的数据拉取命令。
+> AI 会根据您在第三步选择的数据源，自动引导您执行对应的数据拉取命令。若您选择的是“方案 E：已发布数据包”，可直接跳过全量拉取，改用一键脚本初始化。
 
 ### 6.1 拉取全量历史数据（首次运行）
 

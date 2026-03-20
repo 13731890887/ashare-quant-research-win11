@@ -33,3 +33,38 @@ pip install -e .
 ## 6) 说明
 - 当前代码主要吃 CPU，5060Ti 不会自动加速。
 - 若要 GPU 加速训练，需要改用 XGBoost/LightGBM GPU 版本。
+
+
+## 7) 一步配置 + 运行（推荐）
+如果你只是想最快把项目跑起来，不想先自己准备历史 parquet，可以直接执行：
+
+```powershell
+.\scripts\bootstrap_from_data_package_win.ps1
+```
+
+它会自动：
+- 创建 `.env`
+- 下载已发布数据包
+- 解压到项目目录
+- 执行 `uv sync`
+- 运行正式策略
+
+默认数据包：
+- `https://seqiwang.cn/uploads/ashare-quant-data-20260320.tar.gz`
+
+主行情真实时间范围：
+- `2021-01-04` ~ `2026-03-18`
+
+如果你想改成下载后直接启动 Web：
+
+```powershell
+$env:ASHARE_RUN_MODE = "app"
+.\scripts\bootstrap_from_data_package_win.ps1
+```
+
+如果你想先跑策略再启动 Web：
+
+```powershell
+$env:ASHARE_RUN_MODE = "both"
+.\scripts\bootstrap_from_data_package_win.ps1
+```
